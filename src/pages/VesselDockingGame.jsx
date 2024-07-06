@@ -1,42 +1,81 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import vesselImage from "/public/images/vessel.png";
 
 const VesselDockingGame = () => {
   const [vesselPosition, setVesselPosition] = useState({ top: 50, left: 50 });
+  const [vesselVelocity, setVesselVelocity] = useState({ top: 0, left: 0 });
   const [isDocked, setIsDocked] = useState(false);
+  const gameAreaRef = useRef(null);
 
   const handleKeyDown = (e) => {
     if (isDocked) return;
 
-    setVesselPosition((prevPosition) => {
-      const newPosition = { ...prevPosition };
+    setVesselVelocity((prevVelocity) => {
+      const newVelocity = { ...prevVelocity };
       switch (e.key) {
         case "ArrowUp":
-          newPosition.top = Math.max(prevPosition.top - 5, 0);
+          newVelocity.top = -1;
           break;
         case "ArrowDown":
-          newPosition.top = Math.min(prevPosition.top + 5, 95);
+          newVelocity.top = 1;
           break;
         case "ArrowLeft":
-          newPosition.left = Math.max(prevPosition.left - 5, 0);
+          newVelocity.left = -1;
           break;
         case "ArrowRight":
-          newPosition.left = Math.min(prevPosition.left + 5, 95);
+          newVelocity.left = 1;
           break;
         default:
           break;
       }
-      return newPosition;
+      return newVelocity;
+    });
+  };
+
+  const handleKeyUp = (e) => {
+    setVesselVelocity((prevVelocity) => {
+      const newVelocity = { ...prevVelocity };
+      switch (e.key) {
+        case "ArrowUp":
+        case "ArrowDown":
+          newVelocity.top = 0;
+          break;
+        case "ArrowLeft":
+        case "ArrowRight":
+          newVelocity.left = 0;
+          break;
+        default:
+          break;
+      }
+      return newVelocity;
     });
   };
 
   useEffect(() => {
     const handleKeyDownWrapper = (e) => handleKeyDown(e);
+    const handleKeyUpWrapper = (e) => handleKeyUp(e);
     window.addEventListener("keydown", handleKeyDownWrapper);
+    window.addEventListener("keyup", handleKeyUpWrapper);
     return () => {
       window.removeEventListener("keydown", handleKeyDownWrapper);
+      window.removeEventListener("keyup", handleKeyUpWrapper);
     };
   }, [isDocked]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVesselPosition((prevPosition) => {
+        const newPosition = {
+          top: Math.min(Math.max(prevPosition.top + vesselVelocity.top, 0), 95),
+          left: Math.min(Math.max(prevPosition.left + vesselVelocity.left, 0), 95),
+        };
+        return newPosition;
+      });
+    }, 20);
+
+    return () => clearInterval(interval);
+  }, [vesselVelocity]);
 
   useEffect(() => {
     if (
@@ -59,9 +98,11 @@ const VesselDockingGame = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
       <h1 className="text-3xl font-bold">Vessel Docking Game</h1>
-      <div className="relative w-[400px] h-[400px] border-2 border-gray-500">
-        <div
-          className="absolute w-10 h-10 bg-blue-500"
+      <div ref={gameAreaRef} className="relative w-[400px] h-[400px] border-2 border-gray-500">
+        <img
+          src={vesselImage}
+          alt="Vessel"
+          className="absolute w-10 h-10"
           style={{ top: `${vesselPosition.top}%`, left: `${vesselPosition.left}%` }}
         />
         <div className="absolute w-20 h-20 bg-green-500 top-[80%] left-[80%]" />
